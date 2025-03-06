@@ -1,0 +1,15 @@
+numpy
+pandas
+prophet
+asyncio
+websockets
+aiogram
+matplotlib
+python-dotenv
+convertdate
+lunarcalendar
+requests
+tensorflow
+keras
+websockets
+tensorflow-gpu
