@@ -9,6 +9,5 @@ python-dotenv
 convertdate
 lunarcalendar
 requests
-websockets
 scikit-learn
 joblib
