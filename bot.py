@@ -14,9 +14,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DERIV_API_TOKEN = os.getenv('DERIV_API_TOKEN')
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+# DERIV_API_TOKEN = os.getenv('DERIV_API_TOKEN')
+# TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+# TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+
+
+TELEGRAM_BOT_TOKEN="7722875454:AAHaunZl0Vog4TKI7R2k1Bw21jQem6DwCII"
+TELEGRAM_CHAT_ID="6172426644"
+DERIV_API_TOKEN="IMTv8rrVCdmGbkT"
 
 # 🔹 Initialize Telegram Bot
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
