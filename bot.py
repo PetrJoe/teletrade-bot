@@ -4,28 +4,25 @@ import os
 import datetime
 import pandas as pd
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import LSTM, Dense
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import MinMaxScaler
 from aiogram import Bot
 import websockets
+import joblib
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
-# DERIV_API_TOKEN =  os.getenv('DERIV_API_TOKEN')
-# TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-# TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-
-TELEGRAM_BOT_TOKEN="7722875454:AAHaunZl0Vog4TKI7R2k1Bw21jQem6DwCII"
-TELEGRAM_CHAT_ID="6172426644"
-DERIV_API_TOKEN="IMTv8rrVCdmGbkT"
+DERIV_API_TOKEN = os.getenv('DERIV_API_TOKEN')
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 # 🔹 Initialize Telegram Bot
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # 🔹 Paths for storing model and data
-MODEL_PATH = "lstm_model.h5"
+MODEL_PATH = "linear_model.pkl"
 DATA_PATH = "candles_data.csv"
 
 # 🔹 Symbol Mapping
@@ -42,7 +39,7 @@ async def get_candles(symbol, timeframe, count=100):
     async with websockets.connect("wss://ws.deriv.com/websockets/v3") as ws:
         await ws.send(json.dumps({"authorize": DERIV_API_TOKEN}))
         await ws.recv()
-        
+
         request = json.dumps({
             "ticks_history": symbol,
             "count": count,
@@ -52,54 +49,48 @@ async def get_candles(symbol, timeframe, count=100):
         await ws.send(request)
         response = await ws.recv()
         data = json.loads(response)
-        
+
         return data.get("candles", [])
 
-# 🔹 Load or Build LSTM Model
-def load_or_build_lstm_model():
+# 🔹 Load or Build Linear Regression Model
+def load_or_build_linear_model():
     if os.path.exists(MODEL_PATH):
-        return load_model(MODEL_PATH)
-    model = Sequential([
-        LSTM(50, return_sequences=True, input_shape=(20, 1)),
-        LSTM(50, return_sequences=False),
-        Dense(25),
-        Dense(1)
-    ])
-    model.compile(optimizer="adam", loss="mean_squared_error")
+        return joblib.load(MODEL_PATH)
+    model = LinearRegression()
     return model
 
-model = load_or_build_lstm_model()
+model = load_or_build_linear_model()
+scaler = MinMaxScaler()
 
-# 🔹 Train & Save LSTM Model
-def train_lstm(candles):
+# 🔹 Train & Save Linear Regression Model
+def train_linear_model(candles):
     df = pd.DataFrame(candles)
     df["close"] = df["close"].astype(float)
     df.to_csv(DATA_PATH, mode='a', index=False, header=not os.path.exists(DATA_PATH))
-    
+
     data = df["close"].values.reshape(-1, 1)
-    data = (data - np.min(data)) / (np.max(data) - np.min(data))
-    
+    data = scaler.fit_transform(data)
+
     X, y = [], []
     for i in range(20, len(data)):
-        X.append(data[i-20:i])
+        X.append(data[i-20:i].flatten())
         y.append(data[i])
-    
+
     X, y = np.array(X), np.array(y)
-    model.fit(X, y, batch_size=1, epochs=5, verbose=0)
-    model.save(MODEL_PATH)
+    model.fit(X, y)
+    joblib.dump(model, MODEL_PATH)
 
 # 🔹 AI-Based Forecasting Signal
 def ai_forecast(candles):
     df = pd.DataFrame(candles)
     df["close"] = df["close"].astype(float)
-    
+
     last_20 = df["close"].values[-20:].reshape(-1, 1)
-    last_20 = (last_20 - np.min(last_20)) / (np.max(last_20) - np.min(last_20))
-    last_20 = np.array([last_20])
-    
-    predicted_price = model.predict(last_20)[0][0]
+    last_20 = scaler.transform(last_20).flatten().reshape(1, -1)
+
+    predicted_price = model.predict(last_20)[0]
     predicted_price = predicted_price * (np.max(df["close"]) - np.min(df["close"])) + np.min(df["close"])
-    
+
     entry_price = df["close"].iloc[-1]
     if predicted_price > entry_price:
         return "BUY", entry_price, entry_price * 1.02, entry_price * 0.99
@@ -112,7 +103,7 @@ async def weekly_retrain():
         await asyncio.sleep(604800)  # 1 week
         if os.path.exists(DATA_PATH):
             df = pd.read_csv(DATA_PATH)
-            train_lstm(df.to_dict(orient="records"))
+            train_linear_model(df.to_dict(orient="records"))
             print(f"Model retrained on {datetime.datetime.now()}")
 
 # 🔹 Function to Send Trading Signals to Telegram
@@ -134,17 +125,17 @@ async def main():
             candles_m5 = await get_candles(symbol, "M5")
             candles_m15 = await get_candles(symbol, "M15")
             candles_h1 = await get_candles(symbol, "H1")
-            
+
             if not candles_m5 or not candles_m15 or not candles_h1:
                 continue
-            
+
             signal_m5, entry_m5, tp_m5, sl_m5 = ai_forecast(candles_m5)
             signal_m15, entry_m15, tp_m15, sl_m15 = ai_forecast(candles_m15)
             signal_h1, entry_h1, tp_h1, sl_h1 = ai_forecast(candles_h1)
-            
+
             if signal_m5 == signal_m15 == signal_h1:
                 await send_signal(symbol, signal_m5, entry_m5, tp_m5, sl_m5)
-        
+
         await asyncio.sleep(60)
 
 # 🔹 Start the Bot

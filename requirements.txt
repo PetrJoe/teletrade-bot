@@ -9,7 +9,6 @@ python-dotenv
 convertdate
 lunarcalendar
 requests
-tensorflow
-keras
 websockets
-tensorflow-gpu
+scikit-learn
+joblib
