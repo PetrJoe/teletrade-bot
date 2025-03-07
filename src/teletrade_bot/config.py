@@ -1,5 +1,5 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -32,12 +32,12 @@ class Settings(BaseSettings):
         "R_25": "Volatility 25 Index",
     }
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def MAX_DATA_POINTS(self) -> int:
         return int(24 * 60 * self.DATA_RETENTION_DAYS / (self.TRADING_INTERVAL / 60))
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def DERIV_API_URL(self) -> str:
         return f"wss://ws.derivws.com/websockets/v3?app_id={self.DERIV_APP_ID}"
