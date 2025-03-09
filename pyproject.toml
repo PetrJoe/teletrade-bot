@@ -1,0 +1,39 @@
+[project]
+name = "teletrade-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    "aiogram>=3.18.0",
+    "httpx>=0.28.1",
+    "joblib>=1.4.2",
+    "pandas>=2.2.3",
+    "prophet>=1.1.6",
+    "pydantic>=2.10.6",
+    "pydantic-settings>=2.8.1",
+    "scikit-learn>=1.6.1",
+    "websockets>=15.0.1",
+]
+
+[project.scripts]
+bots = "teletrade_bot.bots:run"
+tbot = "teletrade_bot.tbot:run"
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15.0",
+    "pandas-stubs>=2.2.3.241126",
+    "ruff>=0.9.10",
+]
+
+[tool.mypy]
+strict = true
+mypy_path = "src"
+files = ["src/teletrade_bot"]
