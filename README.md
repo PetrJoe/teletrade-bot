@@ -34,3 +34,6 @@ $ uv run bots
 ```bash
 $ uv run tbot
 ```
+
+
+#### This project is opened to anyone for the contribution
